@@ -1,0 +1,55 @@
+name: Deliver Engram Daily files
+on:
+  push:
+    branches: [delivery/engram-daily-0.2.1]
+    paths: [".github/workflows/deliver-engram-daily.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: engram-daily-0.2.1
+    steps:
+      - name: Verify and assemble original files
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          git clone --branch "$GITHUB_REF_NAME" --depth 1 --single-branch "https://github.com/$GITHUB_REPOSITORY.git" transfer
+          cd transfer
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 delivery/restore.py
+          (cd downloads && sha256sum --check SHA256SUMS)
+
+      - name: Add the verified projects and downloads to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --branch main --depth 1 --single-branch "https://github.com/$GITHUB_REPOSITORY.git" project
+          python3 transfer/delivery/copy_project.py project
+          cd project
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.autocrlf false
+          git add -- README.md EngramDailyWindows docs downloads
+          if ! git diff --cached --quiet; then
+            git commit -m "Add Engram Daily Windows source, Android test APK, original archives and guides"
+            git push origin HEAD:refs/heads/main
+          fi
+
+      - name: Attach the original binaries to the GitHub prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision=$(git -C project rev-parse HEAD)
+          cd transfer/downloads
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$revision" \
+            --prerelease --latest=false --title "Engram Daily — Windows 0.2.1 and Android test build" \
+            --notes "Windows 0.2.1 is the current unsigned recovery installer. Windows 0.2.0 is included for reference. The Android APK is the 0.1.0 test build. Both source ZIPs and SHA-256 checksums are attached. The startup guide and functionality audit are in the repository. Native Windows and Android device acceptance remains pending." \
+            Engram-Daily-Jade-Setup-0.2.1-x64.exe Engram-Daily-Jade-Setup-0.2.0-x64.exe \
+            Engram-Daily-Jade-0.1.0-test.apk EngramDaily-Jade-Windows-Source.zip EngramDaily-Jade-Android.zip SHA256SUMS
