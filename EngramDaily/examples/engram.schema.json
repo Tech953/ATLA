@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Engram v1",
+  "type": "object",
+  "required": ["schemaVersion", "name", "bio"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "name": {"type": "string", "maxLength": 500},
+    "bio": {"type": "string", "minLength": 1, "maxLength": 6000}
+  },
+  "additionalProperties": true
+}
