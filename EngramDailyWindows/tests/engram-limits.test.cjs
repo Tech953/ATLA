@@ -1,0 +1,4 @@
+const test=require('node:test'),a=require('node:assert/strict'),c=require('../core-repair.cjs');
+test('large biography survives JSON import and export without truncation',()=>{const bio='Jade lore. '.repeat(9000);const e=c.engram(JSON.parse(JSON.stringify({schemaVersion:1,name:'Jade',bio})));a.equal(e.bio,bio);a.equal(JSON.parse(JSON.stringify(e)).bio,bio);});
+test('biography exact boundary accepted, oversized rejected',()=>{a.equal(c.engram({schemaVersion:1,name:'Jade',bio:'x'.repeat(c.ENGRAM_BIO_CHARS)}).bio.length,1000000);a.throws(()=>c.engram({schemaVersion:1,name:'Jade',bio:'x'.repeat(c.ENGRAM_BIO_CHARS+1)}));});
+test('upload allowance is scoped to engrams and Android profile transfers',()=>{a.equal(c.importLimit('engram'),10485760);a.equal(c.importLimit('android'),10485760);a.equal(c.importLimit('notes'),2000000);a.throws(()=>c.text('x'.repeat(6001)));});

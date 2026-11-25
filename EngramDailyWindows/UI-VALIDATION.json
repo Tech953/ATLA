@@ -1,0 +1,18 @@
+{
+  "environment": "Headless Chromium; mocked desktop API",
+  "reports": [
+    "Today rendered",
+    "Profile rendered",
+    "Engram rendered",
+    "Calendar rendered",
+    "Lab rendered",
+    "Settings rendered"
+  ],
+  "checks": [
+    "All six tabs render without overflow",
+    "Calendar sign-in controls complete mock flow",
+    "Chat errors visible beside reply",
+    "Subsequent reply succeeds"
+  ],
+  "errors": []
+}

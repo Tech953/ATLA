@@ -1,0 +1,9 @@
+{
+  "automatedTests": 32,
+  "domScreens": 6,
+  "missingBridge": "visible error",
+  "stateRequestFailure": "visible error",
+  "renderFailure": "visible error",
+  "nativeStartup": "Not verified: Linux Electron full launch crashed in this container; no Windows device available.",
+  "scope": "Source and DOM/protocol checks, not proof of the reported Windows issue being fixed."
+}

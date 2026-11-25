@@ -1,0 +1,9 @@
+{
+  "installer": "Engram-Daily-Jade-Setup-0.2.0-x64.exe",
+  "bytes": 136214725,
+  "sha256": "5750877e1454b046ac189a7c5be239e9e40d2686ddb9b41be34c7bda8234fb09",
+  "version": "0.2.0",
+  "automatedTestsPassed": 25,
+  "nativeWindowsTest": false,
+  "signed": false
+}

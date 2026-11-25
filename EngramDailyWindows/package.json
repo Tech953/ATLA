@@ -1,0 +1,60 @@
+{
+  "name": "engram-daily",
+  "version": "0.2.1",
+  "description": "Jade career companion and daily digest",
+  "main": "main-repair.cjs",
+  "author": "Engram Daily",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "dist": "node scripts/build-installer.cjs"
+  },
+  "devDependencies": {
+    "electron": "44.4.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "dev.engram.daily",
+    "productName": "Engram Daily",
+    "asar": true,
+    "files": [
+      "main-repair.cjs",
+      "preload-repair.cjs",
+      "startup.cjs",
+      "core-repair.cjs",
+      "calendar.cjs",
+      "calendar-connect.cjs",
+      "gguf.cjs",
+      "architectures.json",
+      "assets/**",
+      "ui/index-repair.html",
+      "ui/startup-guard.js",
+      "ui/app-repair.js",
+      "ui/style.css",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "runtime",
+        "to": "runtime"
+      },
+      {
+        "from": "CALENDAR-SIGN-IN.md",
+        "to": "CALENDAR-SIGN-IN.txt"
+      }
+    ],
+    "win": {
+      "target": "dir",
+      "signAndEditExecutable": false,
+      "icon": "assets/icon.ico"
+    },
+    "extraMetadata": {
+      "version": "0.2.1",
+      "main": "main-repair.cjs"
+    }
+  },
+  "dependencies": {
+    "ical.js": "2.2.1"
+  }
+}

@@ -1,0 +1,7 @@
+Engram Daily / Jade — Windows test build
+
+Open Profile and save a career, then create a digest in Today. Planner works without a model. GGUF requires a compatible model file. If its engine cannot start, Settings has a button for the bundled Microsoft Visual C++ runtime installer.
+
+Calendar imports are snapshots, not live Google/Outlook synchronization. Closing the app window keeps it in the tray only when local daily delivery or calendar reminders are enabled. Quit from the tray to exit. Enable launch at sign-in if desired.
+
+This installer is unsigned and has not been tested on a Windows computer. The companion is a simulated character, not a clinical or neural-monitoring system. No model weights are bundled.
