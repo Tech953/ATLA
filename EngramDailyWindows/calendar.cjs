@@ -1,0 +1,24 @@
+const crypto=require('node:crypto');
+async function parseICS(raw,source,now=Date.now()){
+ const {default:ICAL}=await import('ical.js');const root=new ICAL.Component(ICAL.parse(raw));
+ if(root.name!=='vcalendar')throw Error('Expected an iCalendar VCALENDAR file.');
+ ICAL.TimezoneService.reset();for(const z of root.getAllSubcomponents('vtimezone'))ICAL.TimezoneService.register(new ICAL.Timezone(z));
+ const parts=root.getAllSubcomponents('vevent');for(const p of parts){if(p.hasProperty('recurrence-id')&&!p.hasProperty('dtstart')&&String(p.getFirstPropertyValue('status')).toUpperCase()==='CANCELLED')p.addPropertyWithValue('dtstart',p.getFirstPropertyValue('recurrence-id').clone());}if(parts.length>5000)throw Error('Calendar exceeds 5,000 event components. Export a smaller date range.');
+ const warnings=new Set(),start=now-7*86400000,end=now+180*86400000,out=[];
+ for(const p of parts)for(const name of ['dtstart','dtend','recurrence-id','exdate','rdate'])for(const prop of p.getAllProperties(name)){
+  const tz=prop.getParameter('tzid');if(tz&&!ICAL.TimezoneService.has(tz))throw Error(`Timezone ${tz} has no VTIMEZONE definition. Export a complete ICS with timezones.`);
+ }
+ function ms(t){if(t.isDate||t.zone===ICAL.Timezone.localTimezone){if(!t.isDate)warnings.add('Floating event times use this computer’s local timezone.');return new Date(t.year,t.month-1,t.day,t.hour||0,t.minute||0,t.second||0).getTime();}return t.toUnixTime()*1000;}
+ function add(event,from,to,id){if(String(event.component.getFirstPropertyValue('status')).toUpperCase()==='CANCELLED')return;const a=ms(from),b=ms(to);if(!Number.isFinite(a)||!Number.isFinite(b)||b<a)throw Error('Invalid event date or duration.');if(b<start||a>end)return;
+ out.push({id:event.uid+'|'+id,uid:event.uid||'',title:event.summary||'(Untitled)',location:event.location||'',description:String(event.description||'').slice(0,3000),start:new Date(a).toISOString(),end:new Date(b).toISOString(),allDay:from.isDate,startDate:from.toString().slice(0,10),endDate:to.toString().slice(0,10),busy:event.component.getFirstPropertyValue('transp')!=='TRANSPARENT',source});if(out.length>10000)throw Error('Calendar expands beyond 10,000 occurrences. Use a smaller export.');}
+ const masters=parts.filter(p=>!p.hasProperty('recurrence-id'));
+ for(const p of masters){const event=new ICAL.Event(p,{strictExceptions:true,exceptions:parts.filter(x=>x.hasProperty('recurrence-id')&&x.getFirstPropertyValue('uid')===p.getFirstPropertyValue('uid'))});if(String(p.getFirstPropertyValue('status')).toUpperCase()==='CANCELLED')continue;if(!event.startDate)throw Error('Event is missing DTSTART.');
+ if(event.isRecurring()){const it=event.iterator();let t,count=0;while((t=it.next())){if(++count>20000)throw Error('Recurrence expansion limit reached. Export a recent date range.');if(ms(t)>end+366*86400000)break;const d=event.getOccurrenceDetails(t);add(d.item,d.startDate,d.endDate,t.toString());}}
+ else add(event,event.startDate,event.endDate,event.startDate.toString());}
+ for(const p of parts.filter(p=>p.hasProperty('recurrence-id'))){const e=new ICAL.Event(p);if(!masters.some(m=>m.getFirstPropertyValue('uid')===e.uid)){warnings.add('Detached recurrence exception imported without its series.');add(e,e.startDate,e.endDate,e.recurrenceId.toString());}}
+ const uniq=new Map();for(const e of out)uniq.set(e.id,e);return {source,importedAt:new Date(now).toISOString(),rangeStart:new Date(start).toISOString(),rangeEnd:new Date(end).toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,warnings:[...warnings],events:[...uniq.values()].sort((a,b)=>a.start.localeCompare(b.start))};
+}
+function events(calendars){return calendars.flatMap(c=>c.events).sort((a,b)=>a.start.localeCompare(b.start));}
+function conflicts(rows){const busy=rows.filter(e=>e.busy),out=[];for(let i=0;i<busy.length;i++)for(let j=i+1;j<busy.length;j++){const a=busy[i],b=busy[j];if(a.uid&&a.uid===b.uid&&a.start===b.start)continue;if(a.start<b.end&&b.start<a.end)out.push([a,b]);}return out;}
+function createICS(title,start,end){const a=new Date(start),b=new Date(end);if(!title.trim()||!Number.isFinite(+a)||!Number.isFinite(+b)||b<=a)throw Error('Enter a title and an end after the start.');const esc=x=>x.replaceAll('\\','\\\\').replaceAll('\n','\\n').replaceAll(';','\\;').replaceAll(',','\\,').replaceAll('\r','');const stamp=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Engram Daily//Jade//EN','BEGIN:VEVENT','UID:'+crypto.randomUUID()+'@engram.daily','DTSTAMP:'+stamp(new Date()),'DTSTART:'+stamp(a),'DTEND:'+stamp(b),'SUMMARY:'+esc(title),'STATUS:TENTATIVE','END:VEVENT','END:VCALENDAR'];return lines.map(l=>{let s='',line='';for(const ch of l){if(Buffer.byteLength(line+ch)>73){s+=line+'\r\n';line=' ';}line+=ch;}return s+line;}).join('\r\n')+'\r\n';}
+module.exports={parseICS,events,conflicts,createICS};
